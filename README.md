@@ -19,6 +19,9 @@ packages/
   exchange-adapters/ OKX public REST + WebSocket adapter (market data only), rate limiter
   market-data/      Candle/trade/order book storage, gap detection, backfill, staleness monitor
   event-bus/        Redis Streams market event bus (closed candles, tickers, order books, feed status)
+  indicators/       SMA, EMA, RSI, MACD, Bollinger, ATR, ADX, ROC, STDEV, highest/lowest
+  strategy-dsl/     Strategy specification schema, validation and hashing (docs/strategy-dsl.md)
+  strategy-engine/  Strategy evaluation, agent SDK (StrategyAgent, signal checks, candle history), registry
 ```
 
 Further workers and packages from PRD section 13.2 are added stage by stage.

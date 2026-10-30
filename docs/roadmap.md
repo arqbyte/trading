@@ -4,11 +4,11 @@ Tracks the PRD section 19 build order.
 
 | Stage | Deliverable | Status |
 |---|---|---|
-| 1 | Project foundation and database | In review |
-| 2 | OKX market data collector | In review |
-| 3 | Normalised market data infrastructure (Redis distribution to agents) | In review |
-| 4 | Strategy engine, strategy DSL and agent SDK | Next |
-| 5 | Initial strategy agents (momentum, mean reversion, breakout, scalping, trend, experimental) | |
+| 1 | Project foundation and database | Done |
+| 2 | OKX market data collector | Done |
+| 3 | Normalised market data infrastructure (Redis distribution to agents) | Done |
+| 4 | Strategy engine, strategy DSL and agent SDK | In review |
+| 5 | Initial strategy agents (momentum, mean reversion, breakout, scalping, trend, experimental) | Next |
 | 6 | Paper trading engine | |
 | 7 | Risk management | |
 | 8 | Performance evaluation | |
@@ -29,3 +29,6 @@ Tracks the PRD section 19 build order.
 - **The OKX adapter has not yet been run against the live API**: the build environment's network policy blocks okx.com. Parsing is tested against payloads shaped from the OKX v5 docs.
 - **Redis Streams with consumer groups** for distribution. Each consumer group (e.g. one per agent) receives every event once, in order; events are acknowledged only after the handler succeeds, so a crashed agent resumes from where it stopped. The latest ticker and feed status per symbol are also kept in plain keys for quick freshness checks.
 - **Only closed candles go on the bus**, and only those that close after the collector starts. When a gap is found, the recovered candles are published (flagged `backfilled`) before the candle that revealed the gap, so consumers always see candles in order. Agents warm up from the database.
+- **A JSON rule-tree DSL instead of the PRD example's free-text conditions** (`"EMA20 crosses above EMA50"`). Free text needs a parser and is ambiguous; structured operands can be validated completely and can't express code. See docs/strategy-dsl.md.
+- **Indicators use JavaScript numbers; money uses Decimal.** Indicators only feed decisions, are deterministic for the same inputs, and would be very slow in 40-digit decimals. Stop/take-profit prices, sizes, balances, fees and P&L stay in Decimal.
+- **Every strategy must set a stop-loss**, and strategies are long-only spot. The engine produces signals only; sizing and stop enforcement belong to the risk and paper execution engines (Stages 6–7).
