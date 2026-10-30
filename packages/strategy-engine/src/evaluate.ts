@@ -4,6 +4,7 @@ import {
   type IndicatorDef,
   type Operand,
   type PriceSource,
+  type QuoteField,
   type Rule,
   type StrategySpec,
   validateStrategy,
@@ -15,6 +16,14 @@ export interface PositionView {
   averageEntryPrice?: DecimalString;
   /** Highest price since entry, maintained by the portfolio, for trailing stops. */
   highestPriceSinceEntry?: DecimalString;
+}
+
+/** Latest top-of-book quote, for strategies that use `quote` operands. */
+export interface QuoteView {
+  bid: DecimalString;
+  bidSize: DecimalString;
+  ask: DecimalString;
+  askSize: DecimalString;
 }
 
 export interface Decision {
@@ -51,7 +60,7 @@ export class CompiledStrategy {
   }
 
   /** Decides on the latest candle in `candles` (oldest first, all closed). */
-  evaluate(candles: readonly Candle[], position: PositionView): Decision {
+  evaluate(candles: readonly Candle[], position: PositionView, quote?: QuoteView): Decision {
     assertHistory(candles, this.spec.timeframe);
     if (candles.length < this.warmupBars) {
       return { action: "HOLD", reasoning: `warming up: ${candles.length}/${this.warmupBars} candles` };
@@ -61,7 +70,13 @@ export class CompiledStrategy {
     const lines = computeIndicators(this.spec.indicators, series);
     const last = candles.length - 1;
     const close = new Decimal(candles[last]!.close);
-    const ctx: EvalContext = { series, lines, defs: new Map(this.spec.indicators.map((d) => [d.id, d])), i: last };
+    const ctx: EvalContext = {
+      series,
+      lines,
+      defs: new Map(this.spec.indicators.map((d) => [d.id, d])),
+      i: last,
+      quote: quote && quoteValues(quote),
+    };
     const inPosition = new Decimal(position.quantity).gt(0);
 
     if (!inPosition) {
@@ -165,22 +180,36 @@ interface EvalContext {
   lines: Map<string, Lines>;
   defs: Map<string, IndicatorDef>;
   i: number;
+  quote: Record<QuoteField, number | undefined> | undefined;
+}
+
+function quoteValues(q: QuoteView): Record<QuoteField, number | undefined> {
+  const bid = new Decimal(q.bid);
+  const ask = new Decimal(q.ask);
+  const mid = bid.plus(ask).div(2);
+  const sizes = new Decimal(q.bidSize).plus(q.askSize);
+  return {
+    // A crossed or empty book is unusable, so the condition reads as false.
+    spreadPercent: ask.lt(bid) || mid.lte(0) ? undefined : ask.minus(bid).div(mid).mul(100).toNumber(),
+    imbalance: sizes.lte(0) ? undefined : new Decimal(q.bidSize).minus(q.askSize).div(sizes).toNumber(),
+  };
 }
 
 function operandAt(o: Operand, ctx: EvalContext, back: number): number | undefined {
   if ("value" in o) return o.value;
+  if ("quote" in o) return back === 0 ? ctx.quote?.[o.quote] : undefined;
   const idx = ctx.i - o.offset - back;
   if (idx < 0) return undefined;
-  if ("price" in o) return ctx.series[o.price][idx];
-  const lines = ctx.lines.get(o.indicator)!;
-  const field = o.field ?? "value";
-  return lines[field]?.[idx];
+  const raw = "price" in o ? ctx.series[o.price][idx] : ctx.lines.get(o.indicator)![o.field ?? "value"]?.[idx];
+  return raw === undefined ? undefined : raw * (o.scale ?? 1);
 }
 
 function describe(o: Operand): string {
   if ("value" in o) return String(o.value);
+  if ("quote" in o) return `quote.${o.quote}`;
   const base = "price" in o ? o.price : o.field ? `${o.indicator}.${o.field}` : o.indicator;
-  return o.offset ? `${base}[-${o.offset}]` : base;
+  const shifted = o.offset ? `${base}[-${o.offset}]` : base;
+  return o.scale !== undefined && o.scale !== 1 ? `${o.scale}x ${shifted}` : shifted;
 }
 
 const fmt = (n: number) => (Math.abs(n) >= 1 ? n.toFixed(4) : n.toPrecision(6));

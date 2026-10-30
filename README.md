@@ -22,6 +22,7 @@ packages/
   indicators/       SMA, EMA, RSI, MACD, Bollinger, ATR, ADX, ROC, STDEV, highest/lowest
   strategy-dsl/     Strategy specification schema, validation and hashing (docs/strategy-dsl.md)
   strategy-engine/  Strategy evaluation, agent SDK (StrategyAgent, signal checks, candle history), registry
+  builtin-strategies/ The six initial agents as DSL specs, plus seeding (docs/agents.md)
 ```
 
 Further workers and packages from PRD section 13.2 are added stage by stage.
@@ -35,6 +36,7 @@ cp .env.example .env
 docker compose up -d          # TimescaleDB (PostgreSQL 16) + Redis
 pnpm install
 pnpm db:migrate               # needs DATABASE_URL in the environment
+pnpm db:seed                  # registers the six built-in agents (paused)
 pnpm dev:api                  # http://localhost:4000/api/v1/health
 pnpm --filter @atrp/worker-market-data dev   # start collecting OKX data
 ```

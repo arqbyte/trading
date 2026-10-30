@@ -121,6 +121,28 @@ describe("CompiledStrategy", () => {
     expect(decision.action).toBe("BUY");
   });
 
+  it("uses live quote values and scaled operands", () => {
+    const s = CompiledStrategy.compile({
+      ...crossSpec,
+      indicators: [{ id: "vol", type: "SMA", period: 3, source: "volume" }],
+      entry: {
+        all: [
+          { op: "lt", left: { quote: "spreadPercent" }, right: { value: 0.05 } },
+          { op: "gt", left: { quote: "imbalance" }, right: { value: 0.2 } },
+          { op: "gte", left: { price: "volume" }, right: { indicator: "vol", scale: 1 } },
+        ],
+      },
+      exit: { op: "lt", left: { price: "volume" }, right: { indicator: "vol", scale: 0.5 } },
+    });
+    const history = candles([100, 100, 100, 100, 100]);
+    const tight = { bid: d("100"), ask: d("100.01"), bidSize: d("3"), askSize: d("1") };
+    expect(s.evaluate(history, flat, tight).action).toBe("BUY");
+    expect(s.evaluate(history, flat, { ...tight, ask: d("100.2") }).action).toBe("HOLD"); // spread 0.2%
+    expect(s.evaluate(history, flat, { ...tight, askSize: d("3") }).action).toBe("HOLD"); // balanced book
+    expect(s.evaluate(history, flat).action).toBe("HOLD"); // no quote, no trade
+    expect(s.evaluate(history, flat, { ...tight, ask: d("99") }).action).toBe("HOLD"); // crossed book
+  });
+
   it("will not compile an invalid spec", () => {
     expect(() => CompiledStrategy.compile({ ...crossSpec, risk: {} })).toThrow(/Invalid strategy/);
   });

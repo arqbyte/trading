@@ -72,8 +72,10 @@ export function validateStrategy(input: unknown): ValidationResult {
     checkOperand(rule.left, `${path}.left`);
     checkOperand(rule.right, `${path}.right`);
     if ("value" in rule.left && "value" in rule.right) errors.push(`${path}: compares two constants`);
-    if ((rule.op === "crossesAbove" || rule.op === "crossesBelow") && "value" in rule.left) {
-      errors.push(`${path}: the left side of a cross must change over time`);
+    const isCross = rule.op === "crossesAbove" || rule.op === "crossesBelow";
+    if (isCross && "value" in rule.left) errors.push(`${path}: the left side of a cross must change over time`);
+    if (isCross && ("quote" in rule.left || "quote" in rule.right)) {
+      errors.push(`${path}: quote values have no history, so they cannot be used in a cross`);
     }
   };
 
