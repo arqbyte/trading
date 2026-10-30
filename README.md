@@ -9,11 +9,15 @@ Self-hosted research and paper-trading platform for cryptocurrency spot strategi
 ```text
 apps/
   api/              Fastify REST API (/api/v1)
+  workers/
+    market-data/    OKX collector: instrument sync, backfill, streams, gap repair, staleness
 packages/
   shared-types/     Normalised market data, signal contract, exchange adapter interfaces, Decimal helpers
   config/           Environment parsing (fails closed on unsafe settings)
   logging/          pino logger with secret redaction
   database/         SQL migrations, migration runner, connection pool
+  exchange-adapters/ OKX public REST + WebSocket adapter (market data only), rate limiter
+  market-data/      Candle/trade/order book storage, gap detection, backfill, staleness monitor
 ```
 
 Further workers and packages from PRD section 13.2 are added stage by stage.
@@ -28,6 +32,7 @@ docker compose up -d          # TimescaleDB (PostgreSQL 16) + Redis
 pnpm install
 pnpm db:migrate               # needs DATABASE_URL in the environment
 pnpm dev:api                  # http://localhost:4000/api/v1/health
+pnpm --filter @atrp/worker-market-data dev   # start collecting OKX data
 ```
 
 ## Tests

@@ -17,7 +17,17 @@ export interface MarketDataAdapter {
   getRecentTrades(symbol: string, limit: number): Promise<MarketTrade[]>;
   subscribeTicker(symbol: string, onTicker: (ticker: Ticker) => void): Promise<Unsubscribe>;
   subscribeCandles(symbol: string, timeframe: Timeframe, onCandle: (candle: Candle) => void): Promise<Unsubscribe>;
+  subscribeOrderBook(symbol: string, onBook: (book: OrderBook) => void): Promise<Unsubscribe>;
+  subscribeTrades(symbol: string, onTrade: (trade: MarketTrade) => void): Promise<Unsubscribe>;
+  /** Stops every stream. */
+  close(): Promise<void>;
 }
+
+/** Connection lifecycle events, recorded as data quality events. */
+export type StreamEvent =
+  | { type: "disconnected"; stream: string; code: number; reason: string; attempt: number }
+  | { type: "invalid_payload"; stream: string; error: string; payload: string }
+  | { type: "subscription_error"; stream: string; error: string };
 
 /** Read-only view of a real exchange account. Not implemented in the MVP. */
 export interface AccountInfoAdapter {
