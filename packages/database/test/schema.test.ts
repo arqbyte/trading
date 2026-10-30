@@ -2,7 +2,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createPool, migrate, type Pool } from "../src/index.js";
+import { createPool, migrate, recreateDatabase, type Pool } from "../src/index.js";
 
 const url = process.env.TEST_DATABASE_URL;
 
@@ -10,8 +10,8 @@ describe.skipIf(!url)("database schema", () => {
   let pool: Pool;
 
   beforeAll(async () => {
+    await recreateDatabase(url!);
     pool = createPool(url!);
-    await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     await migrate(pool);
   });
 

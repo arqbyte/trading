@@ -42,7 +42,7 @@ pnpm typecheck
 TEST_DATABASE_URL=postgres://trading:trading@localhost:5432/trading_test pnpm test
 ```
 
-Database tests drop and recreate the `public` schema of `TEST_DATABASE_URL`, so point it at a throwaway database. Without it they are skipped. CI runs them against TimescaleDB.
+Database tests drop and recreate the database named in `TEST_DATABASE_URL` (its name must contain "test"), connecting to the `postgres` maintenance database to do so. Without it they are skipped. CI runs them against TimescaleDB.
 
 ## Engineering rules
 
