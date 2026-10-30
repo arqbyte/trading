@@ -58,9 +58,22 @@ export const INDICATOR_FIELDS: Record<IndicatorType, readonly string[]> = {
 /** Bars ago: 0 is the latest closed candle, 1 the one before, and so on. */
 const offset = z.number().int().min(0).max(50).default(0);
 
+/** Multiplies the operand, e.g. `volume > 1.5 x average volume`. */
+const scale = z.number().positive().max(1000).optional();
+
+/**
+ * Live quote values at decision time (latest ticker, not candle history), so
+ * they have no offset. Missing quote data makes the condition false.
+ * - spreadPercent: (ask - bid) / mid * 100
+ * - imbalance: (bidSize - askSize) / (bidSize + askSize), from -1 to 1
+ */
+export const QuoteField = z.enum(["spreadPercent", "imbalance"]);
+export type QuoteField = z.infer<typeof QuoteField>;
+
 export const Operand = z.union([
-  z.object({ indicator: id, field: z.string().optional(), offset }).strict(),
-  z.object({ price: PriceSource, offset }).strict(),
+  z.object({ indicator: id, field: z.string().optional(), offset, scale }).strict(),
+  z.object({ price: PriceSource, offset, scale }).strict(),
+  z.object({ quote: QuoteField }).strict(),
   z.object({ value: z.number().finite() }).strict(),
 ]);
 export type Operand = z.infer<typeof Operand>;

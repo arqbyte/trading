@@ -1,5 +1,5 @@
 import { type Candle, TIMEFRAME_MS, type Timeframe, type TradingSignal, TradingSignalSchema } from "@atrp/shared-types";
-import { CompiledStrategy, type PositionView } from "./evaluate.js";
+import { CompiledStrategy, type PositionView, type QuoteView } from "./evaluate.js";
 
 /**
  * Everything an agent sees when a candle closes (PRD 5.1). It is read-only
@@ -10,6 +10,8 @@ export interface AgentContext {
   readonly symbol: string;
   readonly candles: readonly Candle[];
   readonly position: Readonly<PositionView>;
+  /** Latest top-of-book quote, when the feed is fresh. */
+  readonly quote?: Readonly<QuoteView>;
   /** UTC epoch ms at which the decision is made. */
   readonly now: number;
 }
@@ -46,7 +48,7 @@ export class DslStrategyAgent implements StrategyAgent {
   }
 
   onCandle(ctx: AgentContext): TradingSignal {
-    const d = this.strategy.evaluate(ctx.candles, ctx.position);
+    const d = this.strategy.evaluate(ctx.candles, ctx.position, ctx.quote);
     return {
       agentId: this.agentId,
       strategyVersion: this.strategyVersion,

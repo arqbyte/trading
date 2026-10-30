@@ -55,8 +55,9 @@ A rule is a comparison or a group:
 
 An operand is one of:
 
-- `{ "indicator": "id", "field": "upper", "offset": 0 }`. `field` is required only for multi-line indicators. `offset` is bars ago, 0–50.
-- `{ "price": "close", "offset": 1 }`
+- `{ "indicator": "id", "field": "upper", "offset": 0, "scale": 1.5 }`. `field` is required only for multi-line indicators. `offset` is bars ago, 0–50. `scale` multiplies the value (for example, volume above 1.5 × its average).
+- `{ "price": "close", "offset": 1, "scale": 1 }`
+- `{ "quote": "spreadPercent" | "imbalance" }`. These are live top-of-book values at decision time: spread as a percent of mid, and (bidSize − askSize) / (bidSize + askSize). They have no history, so they can't be used in crosses. Missing or crossed quotes make the condition false.
 - `{ "value": 50 }`
 
 A cross compares the latest bar with the bar before it. If an indicator is still warming up, the condition is false. It is never true.

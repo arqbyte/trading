@@ -63,6 +63,25 @@ importers:
         specifier: ^4.1.0
         version: 4.6.7
 
+  packages/builtin-strategies:
+    dependencies:
+      '@atrp/database':
+        specifier: workspace:*
+        version: link:../database
+      '@atrp/logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@atrp/strategy-dsl':
+        specifier: workspace:*
+        version: link:../strategy-dsl
+      '@atrp/strategy-engine':
+        specifier: workspace:*
+        version: link:../strategy-engine
+    devDependencies:
+      '@atrp/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+
   packages/config:
     dependencies:
       zod:

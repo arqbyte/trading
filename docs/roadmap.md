@@ -8,8 +8,8 @@ Tracks the PRD section 19 build order.
 | 2 | OKX market data collector | Done |
 | 3 | Normalised market data infrastructure (Redis distribution to agents) | Done |
 | 4 | Strategy engine, strategy DSL and agent SDK | In review |
-| 5 | Initial strategy agents (momentum, mean reversion, breakout, scalping, trend, experimental) | Next |
-| 6 | Paper trading engine | |
+| 5 | Initial strategy agents (momentum, mean reversion, breakout, scalping, trend, experimental) | In review |
+| 6 | Paper trading engine (plus the agent runner that feeds it) | Next |
 | 7 | Risk management | |
 | 8 | Performance evaluation | |
 | 9 | Dashboard and leaderboard | |
@@ -32,3 +32,5 @@ Tracks the PRD section 19 build order.
 - **A JSON rule-tree DSL instead of the PRD example's free-text conditions** (`"EMA20 crosses above EMA50"`). Free text needs a parser and is ambiguous; structured operands can be validated completely and can't express code. See docs/strategy-dsl.md.
 - **Indicators use JavaScript numbers; money uses Decimal.** Indicators only feed decisions, are deterministic for the same inputs, and would be very slow in 40-digit decimals. Stop/take-profit prices, sizes, balances, fees and P&L stay in Decimal.
 - **Every strategy must set a stop-loss**, and strategies are long-only spot. The engine produces signals only; sizing and stop enforcement belong to the risk and paper execution engines (Stages 6–7).
+- **Two DSL additions for the agents:** `scale` on operands (for example, volume above 1.5 × its average) and live `quote` operands (`spreadPercent`, `imbalance`) for scalping. Quote values have no history, so crosses on them are rejected.
+- **The agent runner moves to Stage 6.** Running agents needs their positions, which come from the paper engine, so both are built together.

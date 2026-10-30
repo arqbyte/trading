@@ -117,6 +117,18 @@ describe("validateStrategy", () => {
     expect(macd.ok).toBe(false);
   });
 
+  it("does not allow crosses on live quote values", () => {
+    const result = validateStrategy(
+      withChanges({
+        indicators: [{ id: "ema20", type: "EMA", period: 20 }],
+        entry: { op: "crossesAbove", left: { quote: "imbalance" }, right: { value: 0 } },
+        exit: { op: "lt", left: { price: "close" }, right: { indicator: "ema20" } },
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors).toEqual([expect.stringContaining("cannot be used in a cross")]);
+  });
+
   it("hashes logic, not labels", () => {
     const a = validateStrategy(emaMomentumBreakout);
     const b = validateStrategy(withChanges({ name: "Renamed", version: "9.9.9", description: "x" }));
