@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { loadConfig } from "@atrp/config";
 import { createPool, migrate } from "@atrp/database";
+import { MarketEventPublisher, Redis } from "@atrp/event-bus";
 import { OkxMarketDataAdapter } from "@atrp/exchange-adapters";
 import { createLogger } from "@atrp/logging";
 import { MarketDataStore } from "@atrp/market-data";
@@ -24,6 +25,8 @@ const config = loadConfig();
 const log = createLogger("market-data");
 const pool = createPool(config.DATABASE_URL);
 await migrate(pool, { log: (m) => log.info(m) });
+const redis = new Redis(config.REDIS_URL);
+const publisher = new MarketEventPublisher(redis);
 
 let collector: MarketDataCollector | undefined;
 const adapter = new OkxMarketDataAdapter({ onStreamEvent: (e) => collector?.handleStreamEvent(e) });
@@ -33,6 +36,7 @@ collector = new MarketDataCollector(adapter, new MarketDataStore(pool), log, {
   staleAfterMs: env.MARKET_DATA_STALE_AFTER_MS,
   orderBookSnapshotMs: env.MARKET_DATA_ORDERBOOK_SNAPSHOT_MS,
   gapSweepMs: env.MARKET_DATA_GAP_SWEEP_MS,
+  publish: (event) => publisher.publish(event),
 });
 
 await collector.start();
@@ -43,6 +47,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     log.info({ signal }, "shutting down");
     await collector?.stop();
     await pool.end();
+    await redis.quit();
     process.exit(0);
   });
 }

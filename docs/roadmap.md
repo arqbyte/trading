@@ -6,8 +6,8 @@ Tracks the PRD section 19 build order.
 |---|---|---|
 | 1 | Project foundation and database | In review |
 | 2 | OKX market data collector | In review |
-| 3 | Normalised market data infrastructure (Redis distribution to agents) | Next |
-| 4 | Strategy engine, strategy DSL and agent SDK | |
+| 3 | Normalised market data infrastructure (Redis distribution to agents) | In review |
+| 4 | Strategy engine, strategy DSL and agent SDK | Next |
 | 5 | Initial strategy agents (momentum, mean reversion, breakout, scalping, trend, experimental) | |
 | 6 | Paper trading engine | |
 | 7 | Risk management | |
@@ -27,3 +27,5 @@ Tracks the PRD section 19 build order.
 - **Order books are stored as throttled top-5 snapshots** (OKX `books5`, default every 5s) rather than full incremental depth. Enough for spread and imbalance; full depth with checksums can be added if scalping needs it.
 - **Staleness is measured from ticker arrival time.** A symbol with no ticker for 15s (configurable) is recorded as stale; later stages must refuse to trade it.
 - **The OKX adapter has not yet been run against the live API**: the build environment's network policy blocks okx.com. Parsing is tested against payloads shaped from the OKX v5 docs.
+- **Redis Streams with consumer groups** for distribution. Each consumer group (e.g. one per agent) receives every event once, in order; events are acknowledged only after the handler succeeds, so a crashed agent resumes from where it stopped. The latest ticker and feed status per symbol are also kept in plain keys for quick freshness checks.
+- **Only closed candles go on the bus**, and only those that close after the collector starts. When a gap is found, the recovered candles are published (flagged `backfilled`) before the candle that revealed the gap, so consumers always see candles in order. Agents warm up from the database.
