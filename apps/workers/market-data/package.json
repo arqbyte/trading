@@ -11,6 +11,7 @@
   "dependencies": {
     "@atrp/config": "workspace:*",
     "@atrp/database": "workspace:*",
+    "@atrp/event-bus": "workspace:*",
     "@atrp/exchange-adapters": "workspace:*",
     "@atrp/logging": "workspace:*",
     "@atrp/market-data": "workspace:*",

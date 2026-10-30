@@ -18,6 +18,7 @@ packages/
   database/         SQL migrations, migration runner, connection pool
   exchange-adapters/ OKX public REST + WebSocket adapter (market data only), rate limiter
   market-data/      Candle/trade/order book storage, gap detection, backfill, staleness monitor
+  event-bus/        Redis Streams market event bus (closed candles, tickers, order books, feed status)
 ```
 
 Further workers and packages from PRD section 13.2 are added stage by stage.
@@ -39,10 +40,11 @@ pnpm --filter @atrp/worker-market-data dev   # start collecting OKX data
 
 ```bash
 pnpm typecheck
-TEST_DATABASE_URL=postgres://trading:trading@localhost:5432/trading_test pnpm test
+TEST_DATABASE_URL=postgres://trading:trading@localhost:5432/trading_test \
+TEST_REDIS_URL=redis://localhost:6379/15 pnpm test
 ```
 
-Database tests drop and recreate the database named in `TEST_DATABASE_URL` (its name must contain "test"), connecting to the `postgres` maintenance database to do so. Without it they are skipped. CI runs them against TimescaleDB.
+Database tests drop and recreate the database named in `TEST_DATABASE_URL` (its name must contain "test"), connecting to the `postgres` maintenance database to do so. Redis tests flush the database number in `TEST_REDIS_URL`. Without these variables the tests are skipped. CI runs them against TimescaleDB.
 
 ## Engineering rules
 

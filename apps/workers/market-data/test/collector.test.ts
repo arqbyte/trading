@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPool, migrate, recreateDatabase, type Pool } from "@atrp/database";
+import type { MarketEvent } from "@atrp/event-bus";
 import { createLogger } from "@atrp/logging";
 import { MarketDataStore } from "@atrp/market-data";
 import {
@@ -107,12 +108,14 @@ describe.skipIf(!url)("MarketDataCollector", () => {
     const history = Array.from({ length: 60 }, (_, i) => candle(lastClosed - (59 - i) * M));
     const { adapter, candleHandlers } = fakeAdapter(history);
     let now = NOW;
+    const published: MarketEvent[] = [];
     const collector = new MarketDataCollector(adapter, new MarketDataStore(pool), createLogger("test", { level: "silent" }), {
       timeframes: ["1m"],
       backfillCandles: 30,
       staleAfterMs: 5000,
       orderBookSnapshotMs: 1000,
       gapSweepMs: 3_600_000,
+      publish: async (e) => void published.push(e),
       now: () => now,
     });
     await collector.start();
@@ -132,6 +135,17 @@ describe.skipIf(!url)("MarketDataCollector", () => {
     const gaps = await pool.query("SELECT details FROM data_quality_events WHERE kind = 'gap'");
     expect(gaps.rows.at(-1).details.written).toBe(5);
 
+    // Only candles closing after startup are published, recovered ones first and in order.
+    const candles = published.filter((e) => e.type === "candle.closed");
+    expect(candles.map((e) => [(e.timestamp - lastClosed) / M, e.backfilled])).toEqual([
+      [1, true],
+      [2, true],
+      [3, true],
+      [4, true],
+      [5, true],
+      [6, false],
+    ]);
+
     // No ticker within the threshold: the symbol goes stale and it is recorded.
     now += 6000;
     collector.staleness.check();
@@ -139,6 +153,7 @@ describe.skipIf(!url)("MarketDataCollector", () => {
     expect(collector.staleness.isStale("BTC/USDT")).toBe(true);
     const stale = await pool.query("SELECT symbol FROM data_quality_events WHERE kind = 'stale' AND resolved_at IS NULL");
     expect(stale.rows).toEqual([{ symbol: "BTC/USDT" }]);
+    expect(published.at(-1)).toMatchObject({ type: "feed.status", symbol: "BTC/USDT", stale: true });
 
     await collector.stop();
   });

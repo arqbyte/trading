@@ -1,10 +1,12 @@
-import { type MarketDataAdapter, TIMEFRAME_MS, type Timeframe } from "@atrp/shared-types";
+import { type Candle, type MarketDataAdapter, TIMEFRAME_MS, type Timeframe } from "@atrp/shared-types";
 import { findGaps, type Gap } from "./gaps.js";
 import type { MarketDataStore } from "./store.js";
 
 export interface BackfillResult {
   gapsFound: Gap[];
   candlesWritten: number;
+  /** The closed candles fetched for the gaps, oldest first. */
+  candles: Candle[];
   /** Gaps the exchange could not fill (e.g. no trading, delisted period). */
   unfilled: Gap[];
 }
@@ -25,6 +27,7 @@ export async function backfillCandles(
   const present = await store.closedCandleTimes(adapter.exchange, symbol, timeframe, from, to);
   const gaps = findGaps(present, timeframe, from, to);
   let written = 0;
+  const fetched = new Map<number, Candle>();
 
   for (const gap of gaps) {
     // Page backwards from just after the end of the gap.
@@ -33,6 +36,7 @@ export async function backfillCandles(
       const page = await adapter.getCandles(symbol, timeframe, 100, before);
       const wanted = page.filter((c) => c.isClosed && c.timestamp >= gap.from && c.timestamp <= gap.to);
       written += await store.upsertCandles(wanted, "rest");
+      for (const c of wanted) fetched.set(c.timestamp, c);
       const oldest = page[0]?.timestamp;
       if (oldest === undefined || oldest >= before) break; // no more history
       before = oldest;
@@ -40,5 +44,6 @@ export async function backfillCandles(
   }
 
   const after = gaps.length > 0 ? await store.closedCandleTimes(adapter.exchange, symbol, timeframe, from, to) : present;
-  return { gapsFound: gaps, candlesWritten: written, unfilled: gaps.length > 0 ? findGaps(after, timeframe, from, to) : [] };
+  const candles = [...fetched.values()].sort((a, b) => a.timestamp - b.timestamp);
+  return { gapsFound: gaps, candlesWritten: written, candles, unfilled: gaps.length > 0 ? findGaps(after, timeframe, from, to) : [] };
 }
