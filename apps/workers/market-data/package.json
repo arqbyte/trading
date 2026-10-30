@@ -1,0 +1,20 @@
+{
+  "name": "@atrp/worker-market-data",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@atrp/config": "workspace:*",
+    "@atrp/database": "workspace:*",
+    "@atrp/exchange-adapters": "workspace:*",
+    "@atrp/logging": "workspace:*",
+    "@atrp/market-data": "workspace:*",
+    "@atrp/shared-types": "workspace:*",
+    "zod": "^4.1.0"
+  }
+}

@@ -5,8 +5,8 @@ Tracks the PRD section 19 build order.
 | Stage | Deliverable | Status |
 |---|---|---|
 | 1 | Project foundation and database | In review |
-| 2 | OKX market data collector | Next |
-| 3 | Normalised market data infrastructure (Redis distribution, gap recovery, staleness) | |
+| 2 | OKX market data collector | In review |
+| 3 | Normalised market data infrastructure (Redis distribution to agents) | Next |
 | 4 | Strategy engine, strategy DSL and agent SDK | |
 | 5 | Initial strategy agents (momentum, mean reversion, breakout, scalping, trend, experimental) | |
 | 6 | Paper trading engine | |
@@ -23,3 +23,7 @@ Tracks the PRD section 19 build order.
 - **Decimal strings instead of `number` in shared types.** The PRD's example interfaces use `number` for prices; the PRD also forbids float arithmetic for money (14.2). Shared types carry prices and sizes as decimal strings so nothing is lost between exchange, database and engine.
 - **Plain SQL migrations with a small runner** rather than an ORM, so constraints and triggers (immutability, isolation, append-only logs) are explicit and reviewable.
 - **TimescaleDB is optional at migration time.** Hypertables are created when the extension exists (Docker, CI) and skipped otherwise, so the schema also runs on plain PostgreSQL.
+- **OKX bars use the UTC variants** (`4Hutc`, `1Dutc`); OKX's default 4H/1D candles are aligned to Hong Kong time.
+- **Order books are stored as throttled top-5 snapshots** (OKX `books5`, default every 5s) rather than full incremental depth. Enough for spread and imbalance; full depth with checksums can be added if scalping needs it.
+- **Staleness is measured from ticker arrival time.** A symbol with no ticker for 15s (configurable) is recorded as stale; later stages must refuse to trade it.
+- **The OKX adapter has not yet been run against the live API**: the build environment's network policy blocks okx.com. Parsing is tested against payloads shaped from the OKX v5 docs.
