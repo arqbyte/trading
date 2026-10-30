@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createPool, migrate, type Pool } from "@atrp/database";
+import { createPool, migrate, recreateDatabase, type Pool } from "@atrp/database";
 import { createLogger } from "@atrp/logging";
 import { MarketDataStore } from "@atrp/market-data";
 import {
@@ -91,8 +91,8 @@ describe.skipIf(!url)("MarketDataCollector", () => {
   let pool: Pool;
 
   beforeAll(async () => {
+    await recreateDatabase(url!);
     pool = createPool(url!);
-    await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     await migrate(pool);
     // Only BTC/USDT, to keep the fake small.
     await pool.query("UPDATE instruments SET enabled = (symbol = 'BTC/USDT')");

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createPool, migrate, type Pool } from "@atrp/database";
+import { createPool, migrate, recreateDatabase, type Pool } from "@atrp/database";
 import { type Candle, type MarketDataAdapter, type Timeframe, toDecimalString } from "@atrp/shared-types";
 import { MarketDataStore, backfillCandles } from "../src/index.js";
 
@@ -42,8 +42,8 @@ describe.skipIf(!url)("MarketDataStore", () => {
   let store: MarketDataStore;
 
   beforeAll(async () => {
+    await recreateDatabase(url!);
     pool = createPool(url!);
-    await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     await migrate(pool);
     store = new MarketDataStore(pool);
   });
